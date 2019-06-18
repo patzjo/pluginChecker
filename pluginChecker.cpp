@@ -107,7 +107,7 @@ PluginResult getPluginData(std::string pluginName) {
 
 	int pluginOldVersion = PluginResult::calculateValue(oldVersion);
 
-	std::regex reg1("\\<h2 class=\"hash-header\" id=\"\\d+\">(\\S*).*?(?=\\<ul\\>)(.*?(?=\\<\\/ul\\>))"), 
+	std::regex reg1("\\<h\\d class=\"hash-header\" id=\"\\d+\">(\\S*).*?(?=\\<ul\\>)(.*?(?=\\<\\/ul\\>))"), 
 				reg2("\\<li\\>(.*?)\\<\\/li\\>", std::regex::flag_type::icase);
 	std::smatch match1, match2;
 
