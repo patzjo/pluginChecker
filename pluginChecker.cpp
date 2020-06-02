@@ -42,16 +42,15 @@ struct PluginResult {
 	static int calculateValue(std::string version) {
 		int result = 0;
 
-		// (\d+)\.(\d+)\.(\d+)\+?(\d+)?
 		std::regex reg("(\\d+)\\.(\\d+)\\.(\\d+)\\+?(\\d+)?");
 		std::smatch match;
 		
 		if (std::regex_search(version, match, reg)) {
 
 			if (match[1].matched)
-				result += std::stoi(match[1]) * 10000;
+				result += std::stoi(match[1]) * 1000000;
 			if (match[2].matched)
-				result += std::stoi(match[2]) * 1000;
+				result += std::stoi(match[2]) * 10000;
 			if (match[3].matched)
 				result += std::stoi(match[3]) * 100;
 			if (match[4].matched)
@@ -106,9 +105,11 @@ PluginResult getPluginData(std::string pluginName) {
 	std::vector <VersionChangeHistory> result;
 
 	int pluginOldVersion = PluginResult::calculateValue(oldVersion);
-
-	std::regex reg1("\\<h\\d class=\"hash-header\" id=\"\\d+\">(\\S*).*?(?=\\<ul\\>)(.*?(?=\\<\\/ul\\>))"), 
-				reg2("\\<li\\>(.*?)\\<\\/li\\>", std::regex::flag_type::icase);
+	// hash-header.*?id="[\d-\.]*">\D*(.*?(?=\s)) [\d\D]*?ul>([\d\D]*?<\/ul>)
+	// hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)
+	std::regex reg1("hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)"),
+				reg2("\\<li\>\\s*([\\d\\D]*?(?=\\<\\/li\\>))", std::regex::flag_type::icase);
+	
 	std::smatch match1, match2;
 
 	while (std::regex_search(html, match1, reg1)) {
@@ -221,8 +222,8 @@ void updatePackages(std::vector<PluginResult>& plugins) {
 		}
 		fileIn.close();
 	}
-
 }
+
 
 int main(int argc, char **argv)
 {
