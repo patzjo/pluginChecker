@@ -287,14 +287,11 @@ int main(int argc, char **argv)
 		}
 
 	}
-	/*
 	if (askUpdateFlag) {
 		if (askUpdate()) {
 			updatePackages(localPlugins);
 		}
 
 	}
-	*/
-//	std::cin.get();
 	return 0;
 }
