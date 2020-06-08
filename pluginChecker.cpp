@@ -39,10 +39,10 @@ struct PluginResult {
 		value = calculateValue(version);
 	}
 
-	static int calculateValue(std::string version) {
+	static int calculateValue(const std::string& version) {
 		int result = 0;
 
-		std::regex reg("(\\d+)\\.(\\d+)\\.(\\d+)\\+?(\\d+)?");
+		std::regex reg("(\\d+)\\.(\\d+)\\.(\\d+)\\+?(\\d+)?.*");
 		std::smatch match;
 		
 		if (std::regex_search(version, match, reg)) {
@@ -65,6 +65,32 @@ struct PluginResult {
 	bool operator >= (PluginResult& other) { return value >= other.value; }
 	bool operator == (PluginResult& other) { return value == other.value; }
 };
+
+std::string stripVersionString(const std::string& version) {
+	std::string result = "";
+
+	std::regex reg("(\\d+)\\.(\\d+)\\.(\\d+)\\+?(\\d+)?.*");
+	std::smatch match;
+
+	if (std::regex_search(version, match, reg)) {
+		if (match[1].matched) {
+			result += match[1];
+		}
+		if (match[2].matched) {
+			result += ".";
+			result += match[2];
+		}
+		if (match[3].matched) {
+			result += ".";
+			result += match[3];
+		}
+		if (match[4].matched) {
+			result += "+";
+			result += match[4];
+		}
+	}
+	return result;
+}
 
 std::stringstream getResponse(std::string_view url)
 {
@@ -108,7 +134,8 @@ PluginResult getPluginData(std::string pluginName) {
 	// hash-header.*?id="[\d-\.]*">\D*(.*?(?=\s)) [\d\D]*?ul>([\d\D]*?<\/ul>)
 	// hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)
 	std::regex reg1("hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)"),
-				reg2("\\<li\>\\s*([\\d\\D]*?(?=\\<\\/li\\>))", std::regex::flag_type::icase);
+				reg2("<li>([\\d\\D]*?)<\\/li>", std::regex::flag_type::icase);
+			//	reg2("\\<li\>\\s*([\\d\\D]*?(?=\\<\\/li\\>))", std::regex::flag_type::icase);
 	
 	std::smatch match1, match2;
 
@@ -116,16 +143,18 @@ PluginResult getPluginData(std::string pluginName) {
 		if (PluginResult::calculateValue(match1[1]) <= pluginOldVersion) {
 			break;
 		}
-		
+
 		std::string search2 = match1[2].str();
 		std::vector<std::string> changeLog;
 		VersionChangeHistory vChange;
-		vChange.version = match1[1];
+		vChange.version = stripVersionString(match1[1]);
+
 		while (std::regex_search(search2, match2, reg2)) {
 			vChange.changeLine.push_back(match2[1]);
-			result.push_back(vChange);
 			search2 = match2.suffix();
 		}
+		result.push_back(vChange);
+
 		html = match1.suffix();
 	}
 	return result;
@@ -141,6 +170,7 @@ std::vector<PluginResult> getPackagesFromPubspec(std::string filename) {
 	file.open(filename, std::ios::in);
 	bool pluginSection = false;
 	std::string buffer;
+	
 	if (file.is_open()) {
 		while (std::getline(file, buffer)) {
 
@@ -257,13 +287,14 @@ int main(int argc, char **argv)
 		}
 
 	}
-
+	/*
 	if (askUpdateFlag) {
 		if (askUpdate()) {
 			updatePackages(localPlugins);
 		}
 
 	}
-
+	*/
+//	std::cin.get();
 	return 0;
 }
