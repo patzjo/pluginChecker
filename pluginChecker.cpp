@@ -118,7 +118,7 @@ PluginResult getPluginData(std::string pluginName) {
 	auto url = "https://pub.dev/packages/" + pluginName;
 	auto html = getResponse(url).str();
 
-	std::regex reg("<h2 class=\"title\">([^ ]*) (.*)<\\/h2>");
+	std::regex reg("<h1 class=\"title\">([^ ]*) (.*)<\\/h1>");
 	std::smatch match;
 
 	std::regex_search(html, match, reg);
@@ -126,17 +126,25 @@ PluginResult getPluginData(std::string pluginName) {
 }
 
  std::vector<VersionChangeHistory> getVersionChanges(std::string pluginName, std::string oldVersion) {
-	auto url = "https://pub.dev/packages/" + pluginName + "#-changelog-tab-";
+	auto url = "https://pub.dev/packages/" + pluginName + "/changelog";
+//	auto url = "https://pub.dev/packages/" + pluginName + "#-changelog-tab-";
 	auto html = getResponse(url).str();
 	std::vector <VersionChangeHistory> result;
 
 	int pluginOldVersion = PluginResult::calculateValue(oldVersion);
 	// hash-header.*?id="[\d-\.]*">\D*(.*?(?=\s)) [\d\D]*?ul>([\d\D]*?<\/ul>)
 	// hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)
+/* Old working version 
+*/
 	std::regex reg1("hash-header.*?id=\"[\\d-\\.]*\">\\D*(.*?(?=\\s)) [\\d\\D]*?ul>([\\d\\D]*?<\\/ul>)"),
 				reg2("<li>([\\d\\D]*?)<\\/li>", std::regex::flag_type::icase);
-			//	reg2("\\<li\>\\s*([\\d\\D]*?(?=\\<\\/li\\>))", std::regex::flag_type::icase);
-	
+				//	reg2("\\<li\>\\s*([\\d\\D]*?(?=\\<\\/li\\>))", std::regex::flag_type::icase);
+/*
+	std::regex reg1(R"(changelog-version hash-header.*?>(\S*)(.|\s)*?(?=<ul>)((.|\s)*?(?=<\/ul>)<\/ul>))", std::regex::flag_type::ECMAScript),
+		reg2(R"(<li>([\\d\\D]*?)<\\/li>)", std::regex::flag_type::icase);
+*/
+	// changelog-version hash-header.*?>(\S*).*?(?=<ul>)(.*?(?=<\/ul>)<\/ul>)
+
 	std::smatch match1, match2;
 
 	while (std::regex_search(html, match1, reg1)) {
@@ -260,8 +268,6 @@ int main(int argc, char **argv)
 	std::stringstream ss;
 	std::vector<PluginResult> localPlugins = getPackagesFromPubspec("pubspec.yaml");
 
-	bool askUpdateFlag = false;
-
 	std::cout << "Checking plugins..." << std::endl;
 	for (auto& localPlugin : localPlugins) {
 		ss << "  " << localPlugin.name << " [ " << localPlugin.version << " ] on NET ";
@@ -270,7 +276,6 @@ int main(int argc, char **argv)
 		ss << "[ " << remotePlugin.version << " ] ";
 		
 		if (localPlugin < remotePlugin) {
-			askUpdateFlag = true;
 			localPlugin.newVersion = remotePlugin.version;
 		}
 		std::cout << std::left << std::setw(80) << ss.str() << ((localPlugin < remotePlugin) ? "Update!" : "Got newest version") << std::endl;
@@ -284,12 +289,6 @@ int main(int argc, char **argv)
 					std::cout << "\t * " << line << std::endl;
 				}
 			}
-		}
-
-	}
-	if (askUpdateFlag) {
-		if (askUpdate()) {
-			updatePackages(localPlugins);
 		}
 
 	}
