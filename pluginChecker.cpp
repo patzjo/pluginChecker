@@ -193,11 +193,60 @@ std::vector<PluginResult> getPackagesFromPubspec(std::string filename) {
 		file.close();
 	}
 	else {
-		std::cout << "Can't find pubspec.yaml on this directory!" << std::endl;
+		std::cout << "Can't find " << filename << " on this directory!" << std::endl;
 	}
 
 	return result;
 }
+
+void checkPackagesFromPublock(std::string filename, std::vector<PluginResult>& minedPlugins) {
+	std::fstream file;
+
+	file.open(filename, std::ios::in);
+	std::string fileBuffer;
+	std::string fileData;
+
+	if (file.is_open()) {
+		while (std::getline(file, fileBuffer)) {
+			size_t commentPosition = fileBuffer.find_first_of('#');
+			if (commentPosition != std::string::npos) {
+				fileBuffer = fileBuffer.substr(0, commentPosition); // Remove comment
+
+			}
+			fileData += fileBuffer;
+		}
+		std::regex reg("  (.*?(?=:)).*?(?=version)version: \"([\\d.]*)\"");
+		std::smatch match;
+
+		while ( std::regex_search(fileData, match, reg) ) {
+			for (auto& i : minedPlugins) {
+				if (i.name == match[1]) {
+					bool lockHaveNewerVersion = PluginResult::calculateValue(i.version) < PluginResult::calculateValue(match[2]);
+//					std::cout << "PUBSPEC: " << i.name << " " << i.version;
+					if (lockHaveNewerVersion) {
+//						std::cout << " LOCK file have newer version: " << match[2] << std::endl;
+						i.version = match[2];
+					}
+/*
+					else {
+						std::cout << std::endl;
+					}
+*/
+					break;
+				}
+			}
+			fileData = match.suffix();
+//			std::cout << ">" << fileData << "<" << std::endl;
+		}
+
+
+		file.close();
+	}
+	else {
+		std::cout << "Can't find " << filename << " on this directory!" << std::endl;
+	}
+}
+
 
 bool askUpdate() {
 	bool result = false;
@@ -266,7 +315,16 @@ void updatePackages(std::vector<PluginResult>& plugins) {
 int main(int argc, char **argv)
 {
 	std::stringstream ss;
-	std::vector<PluginResult> localPlugins = getPackagesFromPubspec("pubspec.yaml");
+	std::vector<PluginResult> localPlugins;
+		
+
+	std::cout << "Loading pubspec.yaml" << std::endl;
+	localPlugins = getPackagesFromPubspec("pubspec.yaml");
+
+	if (fs::exists("pubspec.lock")) {
+		std::cout << "Loading pubspec.lock" << std::endl;
+		checkPackagesFromPublock("pubspec.lock", localPlugins);
+	}
 
 	std::cout << "Checking plugins..." << std::endl;
 	for (auto& localPlugin : localPlugins) {

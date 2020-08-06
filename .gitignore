@@ -342,3 +342,5 @@ healthchecksdb
 pubspec.backup
 pubspec.yam
 pubspec.yaml
+pubspec.lock
+pubspec.lock.txt
